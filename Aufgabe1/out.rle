@@ -1,0 +1,3 @@
+#C VPS-I Game of Life (toroidal board)
+x = 6, y = 6, rule = B3/S23
+bo$2o3bo$$$$o!
