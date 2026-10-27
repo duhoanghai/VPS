@@ -1,8 +1,8 @@
 /*
  * DrawingWindow.cpp
  *
- *  Erstellt am: 13.09.2009
- *      Autor: mn
+ *  Created on: 13.09.2009
+ *      Author: mn
  */
 
 #include <iostream>
@@ -17,35 +17,35 @@ using namespace GUI;
 DrawingWindow::DrawingWindow(unsigned int width, unsigned int height, string name, bool createThread, bool destroyable)
 	: width(width), height(height), name(name), graphicsContext(NULL), destroyable(destroyable), destroyed(false)
 {
-	// Thread-Unterstützung von Xlib aktivieren
+	// enable multithreading in Xlib
 	XInitThreads();
 
-	// Verbindung zum X-Display öffnen
+	// open X display
 	display = XOpenDisplay(NULL);
 
-	// Fehler prüfen
+	// check on error
 	if(display == 0)
 	{
 		cerr << "DrawingWindow::DrawingWindow(..), Error: Could not open display." << endl;
 		exit(EXIT_FAILURE);
 	}
 
-	// Fenster mit Position, Größe, Rand und Hintergrund erzeugen
+	// create a window with parameters: display, parent, position x, position y, width, height, border-width, border, background
 	window = XCreateSimpleWindow(display, RootWindow(display, 0), 1, 1, width, height, 0, BlackPixel(display, 0), BlackPixel(display, 0));
 
-	// Fehler prüfen
+	// check on error
 	if(window == 0)
 	{
 		cerr << "DrawingWindow::DrawingWindow(..), Error: Could not create window." << endl;
 		exit(EXIT_FAILURE);
 	}
 
-	// Fenstertitel setzen
+	// set window name
 	XTextProperty nameProperty;
 	size_t nameSize = name.size();
-	char *nameCString = new char[nameSize + 1]; // + 1 für das abschließende Nullzeichen
+	char *nameCString = new char[nameSize + 1]; // + 1 for null-termination
 	name.copy(nameCString, nameSize, 0);
-	nameCString[nameSize] = 0; // Zeichenkette mit Nullzeichen abschließen
+	nameCString[nameSize] = 0; // null-terminate string
 
 	XStringListToTextProperty((char**) &nameCString, 1, &nameProperty);
 	XSetWMName(display, window, &nameProperty);
@@ -54,7 +54,7 @@ DrawingWindow::DrawingWindow(unsigned int width, unsigned int height, string nam
 	// Von Xlib reservierte Hilfsdaten nach der Übergabe wieder freigeben.
 	XFree(nameProperty.value);
 
-	// Feste Fenstergröße vorgeben, passend zum Pixelpuffer
+	// set window manager normal hints to make the window non-resizeable (so we can use a fixed size pixel buffer)
 	XSizeHints* sizeHints = XAllocSizeHints();
 
 	sizeHints->flags = PMinSize | PMaxSize;
@@ -66,15 +66,15 @@ DrawingWindow::DrawingWindow(unsigned int width, unsigned int height, string nam
 	XSetWMNormalHints(display, window, sizeHints);
 	XFree(sizeHints);
 
-	// Fenster auf dem Display sichtbar machen
+	// map the window to the display
 	XMapWindow(display, window);
 
-	// Gepufferte X11-Anfragen an den Server senden
+	// flush the clients output buffer (X client = this application)
 	XFlush(display);
 
-	// Grafikkontext vorbereiten
+	// set up the graphics context
 
-	// Zeichenattribute festlegen
+	// set up some values
 	XGCValues values;
 	values.foreground = WhitePixel(display, 0);
 	values.background = BlackPixel(display, 0);
@@ -83,12 +83,12 @@ DrawingWindow::DrawingWindow(unsigned int width, unsigned int height, string nam
 	values.cap_style = CapRound;
 	values.join_style = JoinRound;
 	values.fill_style = FillSolid;
-	values.graphics_exposures = False; // True erzeugt durch XCopyArea viele zusätzliche Ereignisse
+	values.graphics_exposures = False; // True leads to an fast-growing event queue caused by XCopyArea
 
-	// Zu übernehmende Attribute des Grafikkontexts auswählen
+	// selection of values for the GC creation
 	unsigned long valueMask = GCForeground | GCBackground | GCLineWidth	| GCLineStyle | GCCapStyle | GCJoinStyle | GCFillStyle | GCGraphicsExposures;
 
-	// Grafikkontext erzeugen
+	// create the context
 	graphicsContext = XCreateGC(display, window, valueMask, &values);
 	// GC ist ein Zeiger; ein Fehler wird mit NULL statt mit einem negativen Wert gemeldet.
 	if(graphicsContext == NULL) {
@@ -96,39 +96,39 @@ DrawingWindow::DrawingWindow(unsigned int width, unsigned int height, string nam
 		exit(EXIT_FAILURE);
 	}
 
-	// Pixmap als Zeichenpuffer erzeugen
+	// create a pixmap as buffer for drawing
 	pixmap = XCreatePixmap(display, window, width, height, DefaultDepth(display, 0));
 
-	// Grafikkontext für den Pixelpuffer erzeugen
+	// create the context for the pixmap
 	graphicsContextPixmap = XCreateGC(display, pixmap, valueMask, &values);
 	if(graphicsContextPixmap == NULL) {
 		cerr << "DrawingWindow::DrawingWindow(..), Error: Could not create graphics context for the pixmap." << endl;
 		exit(EXIT_FAILURE);
 	}
 
-	// Zusätzlichen Grafikkontext zum Füllen des Pixelpuffers erzeugen
+	// create another context for filling the pixmap
 	graphicsContextPixmapFill = XCreateGC(display, pixmap, valueMask, &values);
 	if(graphicsContextPixmapFill == NULL) {
 		cerr << "DrawingWindow::DrawingWindow(..), Error: Could not create graphics context for the pixmap for filling." << endl;
 		exit(EXIT_FAILURE);
 	}
 
-	// Standardattribute setzen
+	// set some default attributes
 	XSetForeground(display, graphicsContextPixmapFill, BlackPixel(display, 0));
 
-	// Fenster und Pixelpuffer leeren
+	// clear window/pixmap
 	clear();
 
-	// Thread erzeugen und starten, der run() ausführt
+	// create (and start) pthread running the run-method
 	if(createThread)
 		Thread::create();
 }
 
 DrawingWindow::~DrawingWindow()
 {
-	Thread::cancel(); // Ereignisthread abbrechen und dessen Ende abwarten
+	Thread::cancel(); // cancel event-loop-thread
 
-	// Ab hier ist keine weitere Synchronisation mit dem Ereignisthread nötig
+	// no further locking required from here
 	// Der Ereignisthread ist beendet; Display und Zeichenressourcen sind noch gültig.
 	XFreePixmap(display, pixmap);
 	XFreeGC(display, graphicsContext);
@@ -139,7 +139,7 @@ DrawingWindow::~DrawingWindow()
 
 void DrawingWindow::destroyWindow()
 {
-	// Display-Verbindung schließen
+	// close display
 	destroyed = true;
 
 	XCloseDisplay(display);
@@ -148,44 +148,48 @@ void DrawingWindow::destroyWindow()
 
 void DrawingWindow::run()
 {
-	if(destroyed) return; // Bei geschlossenem Fenster nichts mehr zeichnen
+	if(destroyed) return; // check if window is closed
 
-	// Datenstruktur für ein Ereignis aus der Warteschlange
+	// event data structure for reading events from the event queue
 	XEvent event;
 
-	// Gewünschte Ereignistypen auswählen
+	// define which input sources should be used for events
 XLockDisplay(display);
 	XSelectInput(display, window, ExposureMask | KeyPressMask | ButtonPressMask);
 
-	// WM_DELETE_WINDOW registrieren, um Schließanforderungen abzufangen
-	// Der Fenstermanager sendet diese beim Betätigen der Schließen-Schaltfläche.
+	// setup WM_DELETE_WINDOW protocol to intercept the destruction of the window
+	// by the window manager (e.g. when users decides to close the window)
 	Atom wmDeleteWindowAtom = XInternAtom(display, "WM_DELETE_WINDOW", false);
-	XSetWMProtocols(display, window, &wmDeleteWindowAtom, 1); // Erwartet ein Array von Atomen und dessen Länge
+	XSetWMProtocols(display, window, &wmDeleteWindowAtom, 1); // takes array of atoms and count
 XUnlockDisplay(display);
 
-	// Ereignisse bis zur Schließanforderung verarbeiten
+	// endless loop which processes events
 	while(!destroyed)
 	{
-		Thread::testCancel(); // Definierter Abbruchpunkt für pthread_cancel
+		Thread::testCancel(); // creates a cancellation point
 		usleep(100);
 
-		// Nächstes Ereignis abfragen
+		// read an event
 	XLockDisplay(display);
 		bool cont = !XPending(display);
 	XUnlockDisplay(display);
 
-		if(cont) // Vorab prüfen, damit der folgende Aufruf nicht blockiert
+		if(cont) // pre-check if there are events to prevent blocking
 		{
+//			cerr << "c";
 			continue;
 		}
 
 
 	XLockDisplay(display);
-		XNextEvent(display, &event); // Blockiert, falls kein Ereignis vorliegt
+//		cerr << "p";
+		XNextEvent(display, &event); // blocking if no events are pending
 	XUnlockDisplay(display);
 
+		//if(!XCheckWindowEvent(display, window, ExposureMask, &event)) // non blocking
+		//	continue;
 
-		// Ereignistyp auswerten
+		// evaluate the event type
 		switch(event.type) {
 		case Expose:
 			_DEBUG ( cout << "DrawingWindow::run(), Info: Expose message received. " << endl ) ;
@@ -193,7 +197,7 @@ XUnlockDisplay(display);
 			break;
 		case ClientMessage:
 			_DEBUG ( cout << "DrawingWindow::run(), Info: Delete Window request received. " << endl ) ;
-			if(destroyable && static_cast<Atom>(event.xclient.data.l[0]) == wmDeleteWindowAtom)
+			if(destroyable && static_cast<Atom>(event.xclient.data.l[0]) == wmDeleteWindowAtom) // if not destroyable => ignore close button
 				destroyed = true;
 			break;
 		default:
@@ -202,14 +206,14 @@ XUnlockDisplay(display);
 	    }
 	}
 
-	// Bei einer Schließanforderung endet hier der Ereignisthread.
+	// this point is reached when the window is destroyed/closed, the window thread ends here
 	// Erst der Destruktor schließt das Display, nachdem dieser Thread beendet ist.
 	// Im Hauptthread können noch Zeichenaufrufe abgeschlossen werden.
 }
 
 void DrawingWindow::onExpose(unsigned int xPos, unsigned int yPos, unsigned int width, unsigned int height) const
 {
-	if(destroyed) return; // Bei geschlossenem Fenster nichts mehr zeichnen
+	if(destroyed) return; // check if window is closed
 
 XLockDisplay(display);
 	XCopyArea(display, pixmap, window, graphicsContext, xPos, yPos, width, height, xPos, yPos);
@@ -219,7 +223,7 @@ XUnlockDisplay(display);
 
 void DrawingWindow::setBackgroundColor(RGBColor color)
 {
-	if(destroyed) return; // Bei geschlossenem Fenster nichts mehr zeichnen
+	if(destroyed) return; // check if window is closed
 
 XLockDisplay(display);
 	XSetBackground(display, graphicsContextPixmap, color);
@@ -230,7 +234,7 @@ XUnlockDisplay(display);
 
 void DrawingWindow::setForegroundColor(RGBColor color)
 {
-	if(destroyed) return; // Bei geschlossenem Fenster nichts mehr zeichnen
+	if(destroyed) return; // check if window is closed
 
 XLockDisplay(display);
 	XSetForeground(display, graphicsContextPixmap, color);
@@ -239,7 +243,7 @@ XUnlockDisplay(display);
 
 void DrawingWindow::drawPoint(unsigned int xPos, unsigned int yPos) const
 {
-	if(destroyed) return; // Bei geschlossenem Fenster nichts mehr zeichnen
+	if(destroyed) return; // check if window is closed
 XLockDisplay(display);
 	XDrawPoint(display, pixmap, graphicsContextPixmap, xPos, yPos);
 XUnlockDisplay(display);
@@ -248,27 +252,27 @@ XUnlockDisplay(display);
 
 void DrawingWindow::drawLine(unsigned int xPosStart, unsigned int yPosStart, unsigned int xPosEnd, unsigned int yPosEnd) const
 {
-	if(destroyed) return; // Bei geschlossenem Fenster nichts mehr zeichnen
+	if(destroyed) return; // check if window is closed
 
 XLockDisplay(display);
 	XDrawLine(display, pixmap, graphicsContextPixmap, xPosStart, yPosStart, xPosEnd, yPosEnd);
 XUnlockDisplay(display);
-	onExpose(0, 0, width, height); // Eine Optimierung könnte nur das umschließende Rechteck der Linie aktualisieren.
+	onExpose(0, 0, width, height); // NOTE: not the whole window needs to be updated, the bounding box of the line could be used (with min, max functions)
 }
 
 void DrawingWindow::drawRectangle(unsigned int xPos, unsigned int yPos, unsigned int width, unsigned int height) const
 {
-	if(destroyed) return; // Bei geschlossenem Fenster nichts mehr zeichnen
+	if(destroyed) return; // check if window is closed
 
 XLockDisplay(display);
 	XDrawRectangle(display, pixmap, graphicsContextPixmap, xPos, yPos, width, height);
 XUnlockDisplay(display);
-	onExpose(xPos, yPos, width + 1, height + 1); // Ein zusätzliches Pixel berücksichtigt die Randlinie
+	onExpose(xPos, yPos, width + 1, height + 1); // where 1 is line size
 }
 
 void DrawingWindow::drawFilledRectangle(unsigned int xPos, unsigned int yPos, unsigned int width, unsigned int height) const
 {
-	if(destroyed) return; // Bei geschlossenem Fenster nichts mehr zeichnen
+	if(destroyed) return; // check if window is closed
 
 XLockDisplay(display);
 	XFillRectangle(display, pixmap, graphicsContextPixmap, xPos, yPos, width, height);
@@ -278,7 +282,7 @@ XUnlockDisplay(display);
 
 void DrawingWindow::drawText(unsigned int xPos, unsigned int yPos, string text)
 {
-	if(destroyed) return; // Bei geschlossenem Fenster nichts mehr zeichnen
+	if(destroyed) return; // check if window is closed
 
 XLockDisplay(display);
 	XDrawString(display, pixmap, graphicsContextPixmap, xPos, yPos, text.c_str(), text.length());
@@ -288,7 +292,7 @@ XUnlockDisplay(display);
 
 void DrawingWindow::clear() const
 {
-	if(destroyed) return; // Bei geschlossenem Fenster nichts mehr zeichnen
+	if(destroyed) return; // check if window is closed
 
 XLockDisplay(display);
 	XFillRectangle(display, pixmap, graphicsContextPixmapFill, 0, 0, width, height);

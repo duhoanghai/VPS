@@ -29,7 +29,7 @@ Zusätzlich vorhanden sind Eingabeprüfungen, `--help`/`-h`, automatisierte Test
 
 ```text
 .
-├── README.md                      Deutsche Projektdokumentation
+├── README.md                     Projektdokumentation
 ├── Makefile                      Regeln zum Übersetzen und Testen
 ├── .gitignore                    Ausschluss generierter und lokaler Dateien
 ├── include/                      Header: Schnittstellen und Deklarationen
@@ -231,7 +231,7 @@ Unter macOS kann XQuartz mit `open -a XQuartz` geöffnet werden. Bei „Could no
 | `tests/` | Neu: automatisierte Kern-, CLI-, Thread- und GUI-Tests. |
 | `README.md`, `.gitignore` | Deutsche Dokumentation und Ausschluss generierter Dateien ergänzt. |
 
-Die RLE-Muster sowie `timer/` und `misc/` stammen unverändert aus der Vorgabe. Ursprüngliche Autorenangaben bleiben erhalten. Neue Erläuterungen zu den Implementierungen und Änderungen sind auf Deutsch; historische Kommentare in übernommenen Hilfsdateien können weiterhin Englisch sein. Programmbezeichner und bestehende Konsolentexte wurden nicht vollständig übersetzt.
+Die RLE-Muster sowie `timer/` und `misc/` stammen unverändert aus der Vorgabe. Ursprüngliche Autorenangaben bleiben erhalten. Die ursprünglichen englischen Kommentare der Vorgabe bleiben erhalten. Deutsche Kommentare erläutern ausschließlich neu implementierte Funktionen und ergänzte oder korrigierte Codeabschnitte. Programmbezeichner und bestehende Konsolentexte wurden nicht vollständig übersetzt.
 
 Bei der Dokumentationsprüfung wurde zusätzlich ein Fehler im zuvor ergänzten Join-Schutz gefunden: `cancel()` setzte `running` vor `join()` zurück, sodass der Join übersprungen wurde. Die Korrektur setzt den Zustand erst in `join()` zurück; `test_thread.cc` prüft ausdrücklich, dass `cancel()` auf die Aufräumroutine wartet.
 

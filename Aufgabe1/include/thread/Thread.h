@@ -1,10 +1,11 @@
 /*
  * Thread.h
  *
- *  Erstellt am: 13.09.2009
- *      Autor: mn
+ *  Created on: 13.09.2009
+ *      Author: mn
  *
- * Kapselt einen Teil der pthread-API. Abgeleitete Klassen implementieren run().
+ * This class wraps a part of the pthread api to use threads in an object oriented context.
+ * Other classes can use this class as a base class and must implement the run method.
  */
 
 #ifndef Thread_h
