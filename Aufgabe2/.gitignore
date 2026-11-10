@@ -1,0 +1,10 @@
+bin/
+*.o
+*.d
+*.log
+*.pyc
+__pycache__/
+final.rle
+local.rle
+udp.rle
+tcp.rle
