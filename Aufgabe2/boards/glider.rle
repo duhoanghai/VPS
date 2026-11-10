@@ -1,0 +1,3 @@
+#C 6x6 Glider als deterministische Startbelegung
+x = 6, y = 6, rule = B3/S23
+bob$2bo$3o!
