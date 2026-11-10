@@ -2,6 +2,7 @@
 #include <cerrno>
 #include <cstring>
 #include <stdexcept>
+#include <string>
 #include <sys/socket.h>
 #include <unistd.h>
 

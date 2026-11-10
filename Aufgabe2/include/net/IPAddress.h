@@ -76,7 +76,7 @@ public:
 	*/
 	void resolve(const char* host, short port)
 	{
-		register struct hostent *hp;
+		struct hostent *hp;
 		assert(host != 0);
 
 		hp = gethostbyname(host);
